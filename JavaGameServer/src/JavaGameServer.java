@@ -42,6 +42,8 @@ public class JavaGameServer extends JFrame {
    private Socket client_socket; // accept() 에서 생성된 client 소켓
    private Vector UserVec = new Vector(); // 연결된 사용자를 저장할 벡터
    private static final int BUF_LEN = 128; // Windows 처럼 BUF_LEN 을 정의
+   
+   String invitedUsersStr;
 
    /**
     * Launch the application.
@@ -263,6 +265,11 @@ public class JavaGameServer extends JFrame {
                ChatMsg obcm = new ChatMsg("SERVER", "101", userNameListStr);
                oos.writeObject(obcm);
             }
+            
+            if(msg.matches("550")) { // 초대된 유저들에게 단톡방 알림 보내기
+            	 ChatMsg obcm = new ChatMsg("SERVER", "550", invitedUsersStr);
+                 oos.writeObject(obcm);
+            }
             else {
                ChatMsg obcm = new ChatMsg("SERVER", "200", msg);
             }
@@ -374,10 +381,32 @@ public class JavaGameServer extends JFrame {
                else if(cm.code.matches("101")){
                
                }
-               else if(cm.code.matches("500")) {
-            	   // cm.data: 단톡방에 초대된 유저들 string 
-            	   System.out.println("list도착:"+cm.data);
-    
+               else if(cm.code.matches("500")) { // 단톡방에 초대됐다면
+                  // 단톡방에 초대된 사람 리스트: cm.al, 단톡방 아디: i
+          
+                  System.out.println("list도착:"+cm.al+"/ 단톡방 아디 cm.i: "+cm.i);
+                  AppendText("단톡방 생성 id:"+cm.i+"/유저들:"+cm.al);
+                
+                  // userNameList: a,b,c,
+                  // cm.al:  a, b
+                  
+                  // 다 돌면서 a가 맞는지 체크 , b가 맞는지 체크, c..
+                 /* for(int i=0; i<user_vc.size(); i++) {
+                	  for(int j=0; j<cm.al.size(); j++) {
+                		  UserService user = (UserService) user_vc.elementAt(i);
+                		  if(cm.al.get(j).equals(user.UserName) ) {
+                			  System.out.println(cm.al.get(j)+"맞음");
+                			  user.WriteOne("550");
+                		  }
+                	  }
+                  }
+                  */
+                  
+                  invitedUsersStr = String.join(",", cm.al);
+                  
+                  WriteAll("550");
+                  
+                  
                }
                else if (cm.code.matches("200")) {
                   msg = String.format("[%s] %s", cm.UserName, cm.data);
