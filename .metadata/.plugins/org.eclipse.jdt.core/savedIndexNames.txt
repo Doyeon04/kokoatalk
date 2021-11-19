@@ -2,4 +2,3 @@ INDEX VERSION 1.131+C:\Users\user\Desktop\KoKoaTalkProject\.metadata\.plugins\or
 75931715.index
 3528323770.index
 1865797976.index
-1331962649.index

@@ -1,13 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <section name="Workbench">
 	<section name="org.eclipse.ui.texteditor.FindReplaceDialog">
-		<item key="selection" value="System."/>
+		<item key="selection" value="selectedNameList"/>
 		<item key="wrap" value="true"/>
 		<item key="casesensitive" value="false"/>
 		<item key="wholeword" value="false"/>
 		<item key="incremental" value="false"/>
 		<item key="isRegEx" value="false"/>
 		<list key="findhistory">
+			<item value="selectedNameList"/>
+			<item value="setList"/>
+			<item value="CheckAction"/>
+			<item value="itemStateChanged"/>
 			<item value="System."/>
 			<item value="Hello"/>
 			<item value="userListPanel"/>
@@ -19,16 +23,12 @@
 			<item value="ois.readObject"/>
 			<item value="400"/>
 			<item value="logout"/>
-			<item value="logOut"/>
-			<item value="LogOut"/>
-			<item value="Logout"/>
-			<item value="UserName"/>
 		</list>
 		<list key="replacehistory">
 		</list>
 	</section>
 	<section name="org.eclipse.ui.texteditor.FindReplaceDialog_dialogBounds">
-		<item key="DIALOG_X_ORIGIN" value="-522"/>
+		<item key="DIALOG_X_ORIGIN" value="-313"/>
 		<item key="DIALOG_Y_ORIGIN" value="382"/>
 		<item key="DIALOG_WIDTH" value="340"/>
 		<item key="DIALOG_HEIGHT" value="454"/>
