@@ -173,10 +173,7 @@ public class JavaGameClientView extends JFrame {
 
 		try {
 			socket = new Socket(ip_addr, Integer.parseInt(port_no));
-//			is = socket.getInputStream();
-//			dis = new DataInputStream(is);
-//			os = socket.getOutputStream();
-//			dos = new DataOutputStream(os);
+
 
 			oos = new ObjectOutputStream(socket.getOutputStream());
 			oos.flush();
@@ -240,10 +237,8 @@ public class JavaGameClientView extends JFrame {
 						continue;
 					switch (cm.code) {
 					case "200": // chat message
-						if (cm.UserName.equals(UserName))
-							AppendTextR(msg); // 내 메세지는 우측에
-						else
-							AppendText(msg);
+
+
 						break;
 					case "300": // Image 첨부
 						if (cm.UserName.equals(UserName))

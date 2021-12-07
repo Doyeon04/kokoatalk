@@ -10,10 +10,14 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import java.awt.event.ActionListener;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
@@ -23,6 +27,9 @@ import java.io.UnsupportedEncodingException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 import java.awt.event.ActionEvent;
 import javax.swing.SwingConstants;
@@ -37,13 +44,15 @@ public class JavaGameServer extends JFrame {
    private JPanel contentPane;
    JTextArea textArea;
    private JTextField txtPortNumber;
-
+   int multiChatNum =0; // 단톡방 번호
    private ServerSocket socket; // 서버소켓
    private Socket client_socket; // accept() 에서 생성된 client 소켓
    private Vector UserVec = new Vector(); // 연결된 사용자를 저장할 벡터
    private static final int BUF_LEN = 128; // Windows 처럼 BUF_LEN 을 정의
+   Map<Integer,ArrayList<String>> multiChatNumNmems= new HashMap<>();
+   Map<String,ObjectOutputStream> clientsOutputStream = new HashMap<String,ObjectOutputStream>();
    
-   String invitedUsersStr;
+   String invitedUsersStr; // 하나의 단톡방에 초대된 사람들 리스트
 
    /**
     * Launch the application.
@@ -177,7 +186,8 @@ public class JavaGameServer extends JFrame {
             oos = new ObjectOutputStream(client_socket.getOutputStream());
             oos.flush();
             ois = new ObjectInputStream(client_socket.getInputStream());
-
+            //여기다가 dataoutputstream과 username을 받자.
+            clientsOutputStream.put(UserName,oos);
 
          } catch (Exception e) {
             AppendText("userService error");
@@ -209,6 +219,11 @@ public class JavaGameServer extends JFrame {
             //if (user.UserStatus == "O")
                user.WriteOne(str);
          }
+         if(str.equals("550")) { // 단톡방 생성 코드라면 방 번호 1씩 증가l
+           multiChatNum++;
+           
+         }
+            
       }
       // 모든 User들에게 Object를 방송. 채팅 message와 image object를 보낼 수 있다
       public void WriteAllObject(Object ob) {
@@ -263,13 +278,29 @@ public class JavaGameServer extends JFrame {
                
                
                ChatMsg obcm = new ChatMsg("SERVER", "101", userNameListStr);
+               obcm.al = userNameList;
                oos.writeObject(obcm);
+               oos.reset();
+              
+               System.out.println("서버에서 101보냄");
             }
             
-            if(msg.matches("550")) { // 초대된 유저들에게 단톡방 알림 보내기
-            	 ChatMsg obcm = new ChatMsg("SERVER", "550", invitedUsersStr);
-                 oos.writeObject(obcm);
+            if(msg.matches("550")) { // 일단 모두에게 단톡방에 초대된 사람들 리스트 보내기
+                ChatMsg obcm = new ChatMsg("SERVER", "550", invitedUsersStr);
+                obcm.multiChatNum=multiChatNum; //ChatMsg에 multiChatNum 설정
+                
+                 oos.writeObject(obcm); // 클라이언트에게 보냄
             }
+            
+            if(msg.matches("700")) { // 프로필 이미지 업데이트 된 소식을 알리기 
+                ChatMsg obcm = new ChatMsg("SERVER", "700", "프로필 이미지 업데이트");
+               
+                 //obcm.img = 
+                	//WriteOthersObject(obcm);
+                 oos.writeObject(obcm); // 클라이언트에게 보냄
+            }
+            
+            
             else {
                ChatMsg obcm = new ChatMsg("SERVER", "200", msg);
             }
@@ -317,6 +348,7 @@ public class JavaGameServer extends JFrame {
          try {
              oos.writeObject(ob);
             //oos.writeObject(userNameListStr);
+             oos.reset();
          } 
          catch (IOException e) {
             AppendText("oos.writeObject(ob) error");      
@@ -343,6 +375,68 @@ public class JavaGameServer extends JFrame {
             }
          }
       }
+      public void sendMessage(ChatMsg cm,ArrayList<String> chatMem) {
+    	  
+
+         for(int i=0;i<chatMem.size();i++) {
+            String chatMemName = chatMem.get(i);        
+            for(int j=0;j<user_vc.size();j++) {
+               UserService user = (UserService) user_vc.elementAt(j);
+               if((user.UserName).equals(chatMemName)) {
+                 // cm.code="220";
+                  user.WriteOneObject(cm);      
+                 
+               		}
+            	}
+         	}
+
+      }
+      public void sendProfileImg(ChatMsg cm) {
+    	  for(int j=0;j<user_vc.size();j++) {
+              UserService user = (UserService) user_vc.elementAt(j);
+  
+                 user.WriteOneObject(cm);      
+	
+           	}
+    	  
+      }
+      
+      public void saveProfile(String img, String userName)
+      {
+    	  
+          File oldFile = new File(img);
+          //File newFile = new File("C:\\Users\\user\\Desktop\\KoKoaTalkProject\\JavaGameClient\\src\\profilesPakage\\"+userName+".jpg");
+          //File newFile = new File("./"+userName+".jpg");
+          //File newFile = new File("../JavaGameClient/src/profilesPakage/"+userName+".jpg");
+          File newFile = new File("./src/profilesPakage/"+userName+".jpg");
+
+
+          try {
+              FileInputStream input = new FileInputStream(oldFile);
+              FileOutputStream output = new FileOutputStream(newFile);
+
+
+              byte[] buf = new byte[2048];
+
+              int read;
+
+              while((read = input.read(buf)) > 0)
+              {
+                  output.write(buf, 0, read);
+              }
+
+              input.close();
+              output.close();
+          }
+          catch (IOException e)
+          {
+              e.printStackTrace();
+          }
+          
+         
+          
+          
+      }
       
       public void run() {
          while (true) { // 사용자 접속을 계속해서 받기 위해 while문
@@ -366,48 +460,70 @@ public class JavaGameServer extends JFrame {
                   AppendObject(cm);
                } else
                   continue;
-               if (cm.code.matches("100")) {
+               if (cm.code.matches("100")) { // 유저가 입장하면
+            	   System.out.println("유저 입장!! 100 코드");
                   UserName = cm.UserName;
                   UserStatus = "O"; // Online 상태
                   //Login(cm.code);
                   
                   userNameList.add(cm.UserName);
-                  //String userNameListStr = String.join(",", userNameList);
-                       
-                  
+                  //String userNameListStr = String.join(",", userNameList);      
                  // WriteOthersObject(cm);
                   WriteAll("101");
+                  ImageIcon img = new ImageIcon("src/basicProfileImg.jpg"); // 기본 이미지로 일단 세팅 
+                  cm.img = img;
+                  //saveProfile("src/basicProfileImg.jpg", cm.UserName);
+                  cm.code = "750"; // 프로필 사진 클라이언트에게 보내는 코드 750
+                  sendProfileImg(cm);
                } 
-               else if(cm.code.matches("101")){
-               
-               }
+            
                else if(cm.code.matches("500")) { // 단톡방에 초대됐다면
                   // 단톡방에 초대된 사람 리스트: cm.al, 단톡방 아디: i
           
-                  System.out.println("list도착:"+cm.al+"/ 단톡방 아디 cm.i: "+cm.i);
                   AppendText("단톡방 생성 id:"+cm.i+"/유저들:"+cm.al);
                 
-                  // userNameList: a,b,c,
-                  // cm.al:  a, b
-                  
-                  // 다 돌면서 a가 맞는지 체크 , b가 맞는지 체크, c..
-                 /* for(int i=0; i<user_vc.size(); i++) {
-                	  for(int j=0; j<cm.al.size(); j++) {
-                		  UserService user = (UserService) user_vc.elementAt(i);
-                		  if(cm.al.get(j).equals(user.UserName) ) {
-                			  System.out.println(cm.al.get(j)+"맞음");
-                			  user.WriteOne("550");
-                		  }
-                	  }
-                  }
-                  */
-                  
+             
+                  //여기서 단톡방 생성해줘야함. 
+                  multiChatNumNmems.put(multiChatNum, cm.al); //서버에서 단톡방을 관리하기 위해서 방 넘버와 리스트를 추가함
+                //al에 있는 userName 비교하면서 hashmap을 filter한 뒤에 전송
+                 
+                  MultiChat multiChat = new MultiChat(multiChatNum,cm.al);//number랑 list 전송
+                  //multiChat.setVisible(true);
+           
+                 //만약에 580으로 msg올때 그 메시지 안에는 num와 al이 있어야함. 
                   invitedUsersStr = String.join(",", cm.al);
-                  
-                  WriteAll("550");
+                  //multichat도 보내야되고 multiChatNum도 보내야함.
+                  WriteAll("550"); // 모두에게 일단 550 보낸다. 
                   
                   
                }
+               else if(cm.code.matches("210")) {//단톡방에서 온 메시지 chatmembers에 전송
+                 ArrayList<String> chatmems =multiChatNumNmems.get(cm.multiChatNum);
+                 //multichatnum에 맞는 유저들을 가져옴 리스트로.
+                 
+                 sendMessage(cm,chatmems);
+               }
+               else if(cm.code.matches("580")) {
+                  //단톡방 유저 확인하고  서버에 메시지 처리하고 그거를 또 객체에 보내야함. 
+                  //a.sendMsg(msg); a. sendMsg(number,list);
+
+               }
+               
+               else if(cm.code.matches("700")) { // 한 유저가 프사를 바꾸면 
+            	     saveProfile(cm.img.toString(), cm.UserName);
+            	     System.out.println("프사 바꾼거 서버에서 받음.+"+cm.img);
+            	     WriteAll("700"); 
+            	     
+            	     cm.code = "750";
+            	     sendProfileImg(cm); // 바뀐 프로필 이미지 클라이언트에게 보냄 
+            	  
+                }
+               
+          
+               
+               
+              
+               
                else if (cm.code.matches("200")) {
                   msg = String.format("[%s] %s", cm.UserName, cm.data);
                   AppendText(msg); // server 화면에 출력
@@ -452,10 +568,23 @@ public class JavaGameServer extends JFrame {
                      WriteAllObject(cm);
                   }
                } 
+               else if(cm.code.matches("300")) { // 이미지를 받으면 
+                  ArrayList<String> chatmems =multiChatNumNmems.get(cm.multiChatNum);
+                  
+                  sendMessage(cm,chatmems);
+                  System.out.println("이미지:"+cm.img.toString());
+                 
+                	 // dd(cm.img.toString(), cm.UserName);
+                	  
+                 
+               }
                else if (cm.code.matches("400")) { // logout message 처리
                   Logout();
                   break;
                }
+               
+               
+              
                else { // 300, 500, ... 기타 object는 모두 방송한다.
                   WriteAllObject(cm);
                } 

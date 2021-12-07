@@ -6,4 +6,10 @@
 		<item key="width" value="479"/>
 		<item key="height" value="481"/>
 	</section>
+	<section name="org.eclipse.wb.internal.swing.model.property.editor.font.FontDialog">
+		<item key="x" value="32"/>
+		<item key="y" value="201"/>
+		<item key="width" value="577"/>
+		<item key="height" value="635"/>
+	</section>
 </section>
